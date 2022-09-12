@@ -8,6 +8,7 @@ const API_URL =
 
 const AvailableMeals = () => {
   const [meals, setMeals] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchMeals = async () => {
@@ -24,27 +25,34 @@ const AvailableMeals = () => {
       }
 
       setMeals(loadedMeals);
+      setIsLoading(false);
     };
 
     fetchMeals();
   }, []);
 
+  if (isLoading) {
+    return (
+      <section className={classes.mealsLoading}>
+        <p>Loading...</p>
+      </section>
+    );
+  }
+
+  const mealsList = meals.map((meal) => (
+    <MealItem
+      key={meal.id}
+      id={meal.id}
+      name={meal.name}
+      price={meal.price}
+      description={meal.description}
+    />
+  ));
+
   return (
     <section className={classes.meals}>
       <Card>
-        <ul>
-          {meals.map((meal) => {
-            return (
-              <MealItem
-                key={meal.id}
-                id={meal.id}
-                name={meal.name}
-                price={meal.price}
-                description={meal.description}
-              />
-            );
-          })}
-        </ul>
+        <ul>{mealsList}</ul>
       </Card>
     </section>
   );
