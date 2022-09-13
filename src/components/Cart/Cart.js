@@ -5,8 +5,14 @@ import classes from "./Cart.module.css";
 import CartItem from "./CartItem";
 import Checkout from "./Checkout";
 
+const API_URL =
+  "https://react-food-order-app-e92bb-default-rtdb.europe-west1.firebasedatabase.app/orders.json";
+
 const Cart = (props) => {
   const [isCheckout, setIsCheckout] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const cartCtx = useContext(CartContext);
 
   const totalAmount = `$${cartCtx.totalAmount.toFixed(2)}`;
@@ -22,6 +28,32 @@ const Cart = (props) => {
 
   const orderHandler = () => {
     setIsCheckout(true);
+  };
+
+  const submitOrderHandler = async (userData) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          user: userData,
+          orderedItems: cartCtx.items,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Something went wrong!");
+      }
+
+      const responseData = await response.json();
+
+      setIsSubmitting(false);
+      setDidSubmit(true);
+      cartCtx.clearCart();
+    } catch (error) {
+      setIsSubmitting(false);
+      setSubmitError(error.message);
+    }
   };
 
   const cartItems = (
@@ -54,17 +86,43 @@ const Cart = (props) => {
     </div>
   );
 
+  const cartModalContent = (
+    <>
+      {cartItems}
+      <div className={classes.total}>
+        <span>Total Amount</span>
+        <span>{totalAmount}</span>
+      </div>
+      {isCheckout && (
+        <Checkout onCancel={props.onClose} onSubmit={submitOrderHandler} />
+      )}
+      {!isCheckout && modalActions}
+    </>
+  );
+
+  const isSubmittingModalContent = <p>Sending order data...</p>;
+
+  const submitErrorModalContent = (
+    <p>It seems that there were some error. Please try again later.</p>
+  );
+
+  const didSubmitModalContent = (
+    <>
+      <p>Successfully sent the order!</p>
+      <div className={classes.actions}>
+        <button className={classes.button} onClick={props.onClose}>
+          Close
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <Modal onClose={props.onClose}>
-      <div>
-        {cartItems}
-        <div className={classes.total}>
-          <span>Total Amount</span>
-          <span>{totalAmount}</span>
-        </div>
-        {isCheckout && <Checkout onCancel={props.onClose} />}
-        {!isCheckout && modalActions}
-      </div>
+      {!isSubmitting && !didSubmit && !submitError && cartModalContent}
+      {isSubmitting && isSubmittingModalContent}
+      {submitError && submitErrorModalContent}
+      {didSubmit && didSubmitModalContent}
     </Modal>
   );
 };
